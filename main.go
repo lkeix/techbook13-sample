@@ -25,6 +25,9 @@ func main() {
 		{"/:user/hey", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("health"))
 		}},
+		{"/:user", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("ok!"))
+		}},
 		{"/hoge", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("hoge"))
 		}},

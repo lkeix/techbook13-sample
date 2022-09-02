@@ -146,6 +146,11 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 				nodeType: paramNode,
 			}
 
+			// 最後のノードの場合はハンドラを設定する
+			if i == len(suffix) {
+				newParamNode.handler = handler
+			}
+
 			n.children = append(n.children, newParamNode)
 			fmt.Printf("insert %v, after %v\n", newParamNode, n)
 			suffix = suffix[i:]
@@ -342,6 +347,11 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 		params = append(params, n.param)
 
 		now = _suffix[:i]
+
+		// 既にパスの最後まで処理した場合は、ノードとパスを返す
+		if i == len(_suffix) {
+			return n, now, params
+		}
 
 		// 次のノードは必ず '/' なので、ノードを更新する
 		if len(n.children) > 0 {
