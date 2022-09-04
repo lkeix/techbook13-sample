@@ -250,11 +250,11 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 	}
 }
 
-func (n *Node) Search(path string) (http.HandlerFunc, []Param) {
+func (n *Node) Search(path string) (http.HandlerFunc, []*Param) {
 	_n := n
 	// 前のノードを保存する
 	var _prev *Node
-	var params []Param
+	var params []*Param
 	now := ""
 	suffix := ""
 
@@ -387,11 +387,11 @@ func backtrack(n *Node, path string) (*Node, string) {
 	}
 }
 
-func paramSearch(n *Node, path string) (*Node, string, []Param) {
+func paramSearch(n *Node, path string) (*Node, string, []*Param) {
 	/*
 	** パラメータを保持するスライスを定義
 	 */
-	params := make([]Param, 0)
+	params := make([]*Param, 0, 10)
 
 	_suffix := path
 	now := ""
@@ -413,7 +413,7 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 		** 抽出した文字列をスライスに追加
 		 */
 		n.param.Value = paramBytes.String()
-		params = append(params, n.param)
+		params = append(params, &n.param)
 
 		now = _suffix[:i]
 
