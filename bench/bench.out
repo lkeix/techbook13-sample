@@ -1,0 +1,10 @@
+goos: darwin
+goarch: amd64
+pkg: github.com/lkeix/techbookfes13-sample/bench
+cpu: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz
+BenchmarkEchoRouting-16    	 2719286	       423.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkGinRouting-16       1496504	       803.6 ns/op	     480 B/op	       8 allocs/op
+BenchmarkChi-16            	  395569	      2957 ns/op	    3586 B/op	      24 allocs/op
+BenchmarkMyRouter-16       	  240895	      4318 ns/op	    4523 B/op	      98 allocs/op
+PASS
+ok  	github.com/lkeix/techbookfes13-sample/bench	5.586s
