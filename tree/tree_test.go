@@ -40,7 +40,7 @@ func TestTree(t *testing.T) {
 	}
 
 	for _, v := range values {
-		handler := root.Search(v.str)
+		handler, _ := root.Search(v.str)
 		// 関数ポインタで比較する
 		if reflect.ValueOf(handler).Pointer() != reflect.ValueOf(v.handler).Pointer() {
 			t.Errorf("Expected: %v\n Actually: %v", v.handler, handler)

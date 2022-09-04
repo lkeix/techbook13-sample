@@ -1,14 +1,20 @@
 package router
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/lkeix/techbookfes13-sample/tree"
 )
 
-type Router struct {
-	root *tree.Node
-}
+type (
+	Router struct {
+		root *tree.Node
+	}
+	ParamsKey string
+)
+
+const paramskey ParamsKey = "params"
 
 func NewRouter() *Router {
 	return &Router{
@@ -28,10 +34,21 @@ func (o *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
 	// pathに対応するハンドラを探す
-	handler := o.root.Search(path)
+	handler, params := o.root.Search(path)
 
 	if handler != nil {
+		r = r.WithContext(context.WithValue(r.Context(), paramskey, params))
 		handler(w, r)
 		return
 	}
+}
+
+func Param(r *http.Request, key string) string {
+	params := r.Context().Value(paramskey).([]tree.Param)
+	for _, p := range params {
+		if p.Key == key {
+			return p.Value
+		}
+	}
+	return ""
 }
