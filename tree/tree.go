@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"bytes"
 	"net/http"
 )
 
@@ -137,14 +138,12 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 		// 既に子ノードにパラメータノードがないか探す
 		if suffix[0] == ':' {
 			i := 0
-			param := ""
 
 			// パラメータだけを切り出す
 			for ; i < len(suffix); i++ {
 				if suffix[i] == '/' {
 					break
 				}
-				param += string(suffix[i])
 			}
 
 			var _child *Node
@@ -181,20 +180,20 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 		// パスパラメータの部分だけ切り出してノードを作成する
 		if commonlength == 0 && suffix[0] == ':' {
 			// パラメータ部分だけ切り出す
-			param := ""
+			var paramBytes bytes.Buffer
 			i := 1
 			for ; i < len(suffix); i++ {
 				if suffix[i] == '/' {
 					break
 				}
-				param += string(suffix[i])
+				paramBytes.WriteByte(suffix[i])
 			}
 
 			// 新規にパラメータのノードを作成する
 			newParamNode := &Node{
 				parent:   n,
 				prefix:   suffix[:i],
-				param:    Param{Key: param, Value: ""},
+				param:    Param{Key: paramBytes.String(), Value: ""},
 				children: make([]*Node, 0),
 				nodeType: paramNode,
 			}
@@ -398,7 +397,7 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 	now := ""
 
 	for {
-		param := ""
+		var paramBytes bytes.Buffer
 		i := 0
 		/*
 		** '/' までの文字列を抽出する
@@ -407,13 +406,13 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 			if _suffix[i] == '/' {
 				break
 			}
-			param += string(_suffix[i])
+			paramBytes.WriteByte(_suffix[i])
 		}
 
 		/*
 		** 抽出した文字列をスライスに追加
 		 */
-		n.param.Value = param
+		n.param.Value = paramBytes.String()
 		params = append(params, n.param)
 
 		now = _suffix[:i]
