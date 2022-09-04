@@ -16,6 +16,15 @@ func main() {
 		{"/", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("root"))
 		}},
+		{"/hoge", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("hoge"))
+		}},
+		{"/fuga", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("fuga"))
+		}},
+		{"/hoge/fuga", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("hoge fuga"))
+		}},
 		{"/health", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("health"))
 		}},
@@ -34,15 +43,6 @@ func main() {
 			user := router.Param(r, "user")
 			group := router.Param(r, "group")
 			w.Write([]byte("hey " + user + " " + "group " + group))
-		}},
-		{"/hoge", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("hoge"))
-		}},
-		{"/fuga", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("fuga"))
-		}},
-		{"/hoge/fuga", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("hoge fuga"))
 		}},
 	}
 

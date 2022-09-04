@@ -68,7 +68,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 		commonlength := lcp(n.prefix, suffix)
 
 		// 完全一致しない場合
-		if len(suffix) >= commonlength {
+		if len(suffix) > commonlength {
 			mn := len(suffix)
 			var _next *Node
 
@@ -78,6 +78,16 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 				if l <= mn && l != 0 && n.children[i].nodeType == staticNode {
 					mn = l
 					_next = n.children[i]
+				}
+			}
+
+			// 部分一致するものがあって、/の場合は、次のノードにする
+			if mn < len(suffix) && mn > 0 && suffix[0] == '/' {
+				// 中間ノードがある場合、次のノードにする
+				if _next.prefix == suffix[:mn] {
+					suffix = suffix[mn:]
+					_n = _next
+					continue
 				}
 			}
 
