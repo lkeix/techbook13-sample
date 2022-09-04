@@ -1,7 +1,6 @@
 package tree
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -49,7 +48,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 		n.children = append(n.children, newNode)
 		suffix = suffix[commonlength:]
 		_n = newNode
-		fmt.Printf("insert %v, after %v\n", newNode, n)
+		// fmt.Printf("insert %v, after %v\n", newNode, n)
 	} else {
 		_n = n.children[0]
 	}
@@ -75,7 +74,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			// children の中に prefix と部分一致するものがあるか探す
 			for i := 0; i < len(n.children); i++ {
 				l := lcp(n.children[i].prefix, suffix)
-				if l <= mn && l != 0 && n.children[i].nodeType == staticNode {
+				if l <= mn && l != 0 {
 					mn = l
 					_next = n.children[i]
 				}
@@ -91,7 +90,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 				}
 			}
 
-			// 部分一致するものがある場合
+			// 部分一致するものがある場合で、パス内の文字列の場合
 			if mn < len(suffix) && mn > 0 && suffix[0] != '/' {
 				// 中間ノードがある場合、次のノードにする
 				if _next.prefix == suffix[:mn] {
@@ -206,7 +205,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			}
 
 			n.children = append(n.children, newParamNode)
-			fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
+			// fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
 			suffix = suffix[i:]
 			_n = newParamNode
 			continue
@@ -214,15 +213,23 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 
 		// それ以上の最大共通接頭辞がない場合は、新規ノードを作成する
 		if commonlength == 0 {
+			i := 0
+			for ; i < len(suffix); i++ {
+				if suffix[i] == '/' {
+					break
+				}
+			}
 			newNode := &Node{
 				parent:   n,
-				prefix:   suffix,
+				prefix:   suffix[:i],
 				handler:  handler,
 				nodeType: staticNode,
 			}
+			suffix = suffix[i:]
 			n.children = append(n.children, newNode)
-			fmt.Printf("insert %v, after %v\n", newNode, n)
-			break
+			// fmt.Printf("insert %v, after %v\n", newNode, n)
+			_n = newNode
+			continue
 		}
 
 		// "/"の場合は新規にノードを作成する
