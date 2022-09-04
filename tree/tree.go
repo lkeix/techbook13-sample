@@ -11,8 +11,8 @@ const (
 )
 
 type Param struct {
-	key   string
-	value string
+	Key   string
+	Value string
 }
 
 type Node struct {
@@ -68,14 +68,14 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 		commonlength := lcp(n.prefix, suffix)
 
 		// 完全一致しない場合
-		if len(suffix) > commonlength {
+		if len(suffix) >= commonlength {
 			mn := len(suffix)
 			var _next *Node
 
 			// children の中に prefix と部分一致するものがあるか探す
 			for i := 0; i < len(n.children); i++ {
 				l := lcp(n.children[i].prefix, suffix)
-				if l <= mn && l != 0 {
+				if l <= mn && l != 0 && n.children[i].nodeType == staticNode {
 					mn = l
 					_next = n.children[i]
 				}
@@ -125,6 +125,50 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			return
 		}
 
+		// 既に子ノードにパラメータノードがないか探す
+		if suffix[0] == ':' {
+			i := 0
+			param := ""
+
+			// パラメータだけを切り出す
+			for ; i < len(suffix); i++ {
+				if suffix[i] == '/' {
+					break
+				}
+				param += string(suffix[i])
+			}
+
+			var _child *Node
+
+			// 既にパラメータノードがあるか探す
+			for i := 0; i < len(n.children); i++ {
+				if n.children[i].nodeType == paramNode {
+					_child = n.children[i]
+					break
+				}
+			}
+
+			if _child != nil {
+				l := lcp(_child.prefix, suffix[:i])
+
+				// 既にあるパラメータノードと一致しない場合は、panicを返す
+				if l != len(_child.prefix) {
+					panic("param node is already exist")
+				}
+
+				// suffixが一致する場合は、ハンドラを設定して終了
+				if l == len(suffix) {
+					_child.handler = handler
+					return
+				}
+
+				// suffixが一致しない場合は次のノードとする
+				_n = _child
+				suffix = suffix[i:]
+				continue
+			}
+		}
+
 		// パスパラメータの部分だけ切り出してノードを作成する
 		if commonlength == 0 && suffix[0] == ':' {
 			// パラメータ部分だけ切り出す
@@ -141,7 +185,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			newParamNode := &Node{
 				parent:   n,
 				prefix:   suffix[:i],
-				param:    Param{key: param, value: ""},
+				param:    Param{Key: param, Value: ""},
 				children: make([]*Node, 0),
 				nodeType: paramNode,
 			}
@@ -152,7 +196,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			}
 
 			n.children = append(n.children, newParamNode)
-			fmt.Printf("insert %v, after %v\n", newParamNode, n)
+			fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
 			suffix = suffix[i:]
 			_n = newParamNode
 			continue
@@ -190,7 +234,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 	}
 }
 
-func (n *Node) Search(path string) http.HandlerFunc {
+func (n *Node) Search(path string) (http.HandlerFunc, []Param) {
 	_n := n
 	// 前のノードを保存する
 	var _prev *Node
@@ -211,7 +255,7 @@ func (n *Node) Search(path string) http.HandlerFunc {
 
 		// 完全一致するパスがあるため、ハンドラを返す
 		if now == path {
-			return _n.handler
+			return _n.handler, params
 		}
 
 		// ここまでくる場合は、完全一致していないため backtrack でパラメータノードを子供に持ったノードまで遡る
@@ -220,17 +264,18 @@ func (n *Node) Search(path string) http.HandlerFunc {
 		// パスパラメータルーティングを行う
 		_n, tnow, tparams := paramSearch(_n, path[len(now):])
 
+		// パスの更新
 		now += tnow
 
 		params = append(params, tparams...)
 
 		if now == path {
-			return _n.handler
+			return _n.handler, params
 		}
 
-		// もう検索ができないので nil を返す
+		// ノードが更新されていない = もう検索ができない ので nil を返す
 		if _n == _prev {
-			return nil
+			return nil, params
 		}
 		_prev = _n
 	}
@@ -327,6 +372,9 @@ func backtrack(n *Node, path string) (*Node, string) {
 }
 
 func paramSearch(n *Node, path string) (*Node, string, []Param) {
+	/*
+	** パラメータを保持するスライスを定義
+	 */
 	params := make([]Param, 0)
 
 	_suffix := path
@@ -335,15 +383,20 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 	for {
 		param := ""
 		i := 0
-		// '/' までの文字列を抽出する
+		/*
+		** '/' までの文字列を抽出する
+		 */
 		for ; i < len(_suffix); i++ {
 			if _suffix[i] == '/' {
-				param += string(_suffix[:i])
 				break
 			}
+			param += string(_suffix[i])
 		}
 
-		n.param.value = param
+		/*
+		** 抽出した文字列をスライスに追加
+		 */
+		n.param.Value = param
 		params = append(params, n.param)
 
 		now = _suffix[:i]
@@ -362,7 +415,9 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 		_suffix = _suffix[lcp(_suffix, now):]
 		_next := n
 
-		// 次のノードで、パラメータノードがある場合は、次のノードを更新する
+		/*
+		** 子ノードが paramNode を持っている場合、検索ノードをそのノードに更新する。
+		 */
 		for i := 0; i < len(n.children); i++ {
 			if n.children[i].nodeType == paramNode {
 				_next = n.children[i]
@@ -375,7 +430,9 @@ func paramSearch(n *Node, path string) (*Node, string, []Param) {
 			continue
 		}
 
-		// ここまでくる場合は、パラメータノードがないので値を返す
+		/*
+		** 子ノードにパラメータノードがない場合は、現在のノード、パス文字列、パラメータを返します。
+		 */
 		return n, now, params
 	}
 }

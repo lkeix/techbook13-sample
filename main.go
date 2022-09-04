@@ -22,11 +22,18 @@ func main() {
 		{"/hey", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("hey"))
 		}},
-		{"/:user/hey", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("health"))
-		}},
 		{"/:user", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("ok!"))
+			user := router.Param(r, "user")
+			w.Write([]byte("ok! " + user))
+		}},
+		{"/:user/hey", func(w http.ResponseWriter, r *http.Request) {
+			user := router.Param(r, "user")
+			w.Write([]byte("hey " + user))
+		}},
+		{"/:user/hey/:group", func(w http.ResponseWriter, r *http.Request) {
+			user := router.Param(r, "user")
+			group := router.Param(r, "group")
+			w.Write([]byte("hey " + user + " " + "group " + group))
 		}},
 		{"/hoge", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("hoge"))
