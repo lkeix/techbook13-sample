@@ -3,13 +3,21 @@ package router
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/lkeix/techbookfes13-sample/tree"
 )
 
 type (
+	Context struct {
+		r       *http.Request
+		w       http.ResponseWriter
+		handler http.HandlerFunc
+	}
+
 	Router struct {
 		root *tree.Node
+		pool sync.Pool
 	}
 	ParamsKey string
 )
@@ -19,6 +27,11 @@ const paramskey ParamsKey = "params"
 func NewRouter() *Router {
 	return &Router{
 		root: tree.NewNode(),
+		pool: sync.Pool{
+			New: func() interface{} {
+				return nil
+			},
+		},
 	}
 }
 
@@ -31,10 +44,9 @@ func (o *Router) Search(path string) {
 }
 
 func (o *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-
+	// ctx.w = w
 	// pathに対応するハンドラを探す
-	handler, params := o.root.Search(path)
+	handler, params := o.root.Search(r.URL.Path)
 
 	if handler != nil {
 		r = r.WithContext(context.WithValue(r.Context(), paramskey, params))
@@ -44,7 +56,7 @@ func (o *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func Param(r *http.Request, key string) string {
-	params := r.Context().Value(paramskey).([]tree.Param)
+	params := r.Context().Value(paramskey).([]*tree.Param)
 	for _, p := range params {
 		if p.Key == key {
 			return p.Value
