@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-chi/chi/v5"
+	"github.com/hikaru7719/tinyrouter"
 	"github.com/labstack/echo/v4"
 	"github.com/lkeix/techbookfes13-sample/router"
 )
@@ -92,8 +93,38 @@ func BenchmarkMyRouter(b *testing.B) {
 	}
 }
 
+func BenchmarkTinyRouter(b *testing.B) {
+	b.ReportAllocs()
+	r := httptest.NewRequest("GET", "/", nil)
+	u := r.URL
+	w := httptest.NewRecorder()
+	tinyr := defineTinyRouter()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for i := 0; i < len(routes); i++ {
+			r.Method = http.MethodGet
+			u.Path = routes[i]
+			tinyr.ServeHTTP(w, r)
+		}
+	}
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func defineTinyRouter() tinyrouter.Router {
+	r := tinyrouter.New()
+	r.Get("/", handler)
+	r.Get("/hoge", handler)
+	r.Get("/fuga", handler)
+	r.Get("/hoge/fuga", handler)
+	r.Get("/health", handler)
+	r.Get("/hey", handler)
+	r.Get("/{user}", handler)
+	r.Get("/{user}/hey", handler)
+	r.Get("/{user}/hey/{group}", handler)
+	return r
 }
 
 func defineMyRoute() *router.Router {
@@ -134,7 +165,7 @@ func defineMyRoute() *router.Router {
 	r := router.NewRouter()
 
 	for _, v := range values {
-		r.Insert(v.str, v.handler)
+		r.Insert(v.str, handler)
 	}
 	return r
 }
