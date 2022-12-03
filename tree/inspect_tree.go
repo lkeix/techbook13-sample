@@ -37,7 +37,6 @@ func (n *Node) inspectAdd(method, path string, h http.HandlerFunc) {
 	}
 
 	for i, lcpIndex := 0, len(path); i < lcpIndex; i++ {
-		fmt.Printf("i: %d, lcpIndex: %d\n", i, lcpIndex)
 		// is path param
 		if path[i] == ':' {
 			if i > 0 && path[i-1] == '\\' {
@@ -72,5 +71,5 @@ func (n *Node) inspectAdd(method, path string, h http.HandlerFunc) {
 }
 
 func (n *Node) inspectInsert(method, path string, t kind, rm routeMethod) {
-
+	fmt.Printf("Method: %s\nPath: %s\nKind: %d\nrouteMethod: %v\n\n", method, path, t, rm)
 }

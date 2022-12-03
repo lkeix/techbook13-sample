@@ -26,6 +26,12 @@ func TestInspectAdd(t *testing.T) {
 			path:   "/hoge",
 			h:      testHandler,
 		},
+		{
+			name:   "insert 2 nested static path",
+			method: http.MethodGet,
+			path:   "/hoge/fuga",
+			h:      testHandler,
+		},
 	}
 
 	n := NewNode()
