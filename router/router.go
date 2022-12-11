@@ -114,6 +114,23 @@ func (o *Router) Inspectinsert(method, path string, t kind, rm routeMethod) {
 		if searchLen < mx {
 			mx = searchLen
 		}
+
+		lcpIndex := 0
+		for ; lcpIndex < mx && search[lcpIndex] == currentNode.Prefix[lcpIndex]; lcpIndex++ {
+
+		}
+
+		if lcpIndex == 0 {
+
+		} else if lcpIndex < prefixLen {
+
+		} else if lcpIndex < searchLen {
+
+		} else {
+
+		}
+
+		return
 	}
 }
 
