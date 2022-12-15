@@ -8,9 +8,9 @@ import (
 type (
 	Kind        uint8
 	RouteMethod struct {
-		ppath   string
-		pnames  []string
-		handler http.HandlerFunc
+		Ppath   string
+		Pnames  []string
+		Handler http.HandlerFunc
 	}
 
 	Children []*InspectNode
@@ -26,8 +26,7 @@ type (
 		ParamChild     *InspectNode
 		AnyChild       *InspectNode
 		ParamsCount    int
-		isLeaf         bool
-		isHandler      bool
+		IsHandler      bool
 	}
 )
 
@@ -99,9 +98,9 @@ func (r *RouteMethods) updateAllowHandler() {
 }
 
 const (
-	staticKind Kind = iota
-	paramKind
-	anyKind
+	StaticKind Kind = iota
+	ParamKind
+	AnyKind
 )
 
 func (n *InspectNode) AddMethod(method string, h *RouteMethod) {
@@ -126,7 +125,7 @@ func (n *InspectNode) AddMethod(method string, h *RouteMethod) {
 		n.Methods.Trace = h
 	}
 	n.Methods.updateAllowHandler()
-	n.isHandler = true
+	n.IsHandler = true
 }
 
 func (n *InspectNode) InspectAdd(method, path string, h http.HandlerFunc) {
@@ -156,7 +155,7 @@ func (n *InspectNode) InspectAdd(method, path string, h http.HandlerFunc) {
 			}
 
 			j := i + 1
-			n.inspectInsert(method, path[:i], staticKind, RouteMethod{})
+			n.inspectInsert(method, path[:i], StaticKind, RouteMethod{})
 			for ; i < lcpIndex && path[i] != '/'; i++ {
 			}
 
@@ -165,18 +164,22 @@ func (n *InspectNode) InspectAdd(method, path string, h http.HandlerFunc) {
 			i, lcpIndex = j, len(path)
 
 			if i == lcpIndex {
-				n.inspectInsert(method, path[:i], paramKind, RouteMethod{ppath, pnames, h})
+				n.inspectInsert(method, path[:i], ParamKind, RouteMethod{ppath, pnames, h})
 			} else {
-				n.inspectInsert(method, path[:i], paramKind, RouteMethod{})
+				n.inspectInsert(method, path[:i], ParamKind, RouteMethod{})
 			}
 		} else if path[i] == '*' {
-			n.inspectInsert(method, path[:i], staticKind, RouteMethod{})
+			n.inspectInsert(method, path[:i], StaticKind, RouteMethod{})
 			pnames = append(pnames, "*")
-			n.inspectInsert(method, path[:i+1], anyKind, RouteMethod{ppath, pnames, h})
+			n.inspectInsert(method, path[:i+1], AnyKind, RouteMethod{ppath, pnames, h})
 		}
 	}
 
-	n.inspectInsert(method, path, staticKind, RouteMethod{ppath, pnames, h})
+	n.inspectInsert(method, path, StaticKind, RouteMethod{ppath, pnames, h})
+}
+
+func (n *InspectNode) IsLeaf() bool {
+	return n.StaticChildren == nil && n.ParamChild == nil && n.AnyChild == nil
 }
 
 func (n *InspectNode) inspectInsert(method, path string, t Kind, rm RouteMethod) {

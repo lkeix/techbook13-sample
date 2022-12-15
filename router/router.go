@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -21,7 +22,7 @@ type (
 		pool  sync.Pool
 	}
 
-	routeMethod struct {
+	RouteMethod struct {
 		ppath   string
 		pnames  []string
 		handler http.HandlerFunc
@@ -41,8 +42,10 @@ const (
 
 func NewRouter() *Router {
 	return &Router{
-		root:  tree.NewNode(),
-		iroot: &tree.InspectNode{},
+		root: tree.NewNode(),
+		iroot: &tree.InspectNode{
+			Methods: new(tree.RouteMethods),
+		},
 		pool: sync.Pool{
 			New: func() interface{} {
 				return nil
@@ -77,7 +80,7 @@ func (o *Router) InspectAdd(method, path string, handler http.HandlerFunc) {
 			}
 
 			j := i + 1
-			o.Inspectinsert(method, path[:i], staticKind, routeMethod{})
+			o.Inspectinsert(method, path[:i], tree.StaticKind, tree.RouteMethod{})
 			for ; i < lcpIndex && path[i] != '/'; i++ {
 			}
 
@@ -86,23 +89,24 @@ func (o *Router) InspectAdd(method, path string, handler http.HandlerFunc) {
 			i, lcpIndex = j, len(path)
 
 			if i == lcpIndex {
-				o.Inspectinsert(method, path[:i], paramKind, routeMethod{ppath, pnames, handler})
+				o.Inspectinsert(method, path[:i], tree.ParamKind, tree.RouteMethod{ppath, pnames, handler})
 			} else {
-				o.Inspectinsert(method, path[:i], paramKind, routeMethod{})
+				o.Inspectinsert(method, path[:i], tree.ParamKind, tree.RouteMethod{})
 			}
 		} else if path[i] == '*' {
-			o.Inspectinsert(method, path[:i], staticKind, routeMethod{})
+			o.Inspectinsert(method, path[:i], tree.StaticKind, tree.RouteMethod{})
 			pnames = append(pnames, "*")
-			o.Inspectinsert(method, path[:i+1], anyKind, routeMethod{ppath, pnames, handler})
+			o.Inspectinsert(method, path[:i+1], tree.AnyKind, tree.RouteMethod{ppath, pnames, handler})
 		}
 	}
 
-	o.Inspectinsert(method, path, staticKind, routeMethod{ppath, pnames, handler})
+	o.Inspectinsert(method, path, tree.StaticKind, tree.RouteMethod{ppath, pnames, handler})
 }
 
-func (o *Router) Inspectinsert(method, path string, t tree.Kind, rm routeMethod) {
+func (o *Router) Inspectinsert(method, path string, t tree.Kind, rm tree.RouteMethod) {
 	// is root
 	currentNode := o.iroot
+	fmt.Printf("method: %s\npath: %s\nrm: %v\nroot: %v\n", method, path, rm, currentNode)
 
 	if currentNode == nil {
 		panic("root is nil")
@@ -123,13 +127,15 @@ func (o *Router) Inspectinsert(method, path string, t tree.Kind, rm routeMethod)
 
 		}
 
+		// root
 		if lcpIndex == 0 {
 			currentNode.Label = search[0]
 			currentNode.Prefix = search
-			if rm.handler != nil {
+			if rm.Handler != nil {
 				currentNode.Kind = t
-				currentNode.ParamsCount = len(rm.pnames)
-				currentNode.OriginalPath = rm.ppath
+				currentNode.ParamsCount = len(rm.Pnames)
+				currentNode.OriginalPath = rm.Ppath
+				currentNode.AddMethod(method, &rm)
 			}
 		} else if lcpIndex < prefixLen {
 
