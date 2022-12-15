@@ -1,26 +1,135 @@
 package tree
 
 import (
-	"fmt"
+	"bytes"
 	"net/http"
 )
 
 type (
-	kind        uint8
-	routeMethod struct {
+	Kind        uint8
+	RouteMethod struct {
 		ppath   string
 		pnames  []string
 		handler http.HandlerFunc
 	}
+
+	Children []*InspectNode
+
+	InspectNode struct {
+		Label          byte
+		Prefix         string
+		Kind           Kind
+		Parent         *InspectNode
+		StaticChildren Children
+		OriginalPath   string
+		Methods        *RouteMethods
+		ParamChild     *InspectNode
+		AnyChild       *InspectNode
+		ParamsCount    int
+		isLeaf         bool
+		isHandler      bool
+	}
 )
 
+type RouteMethods struct {
+	Connect     *RouteMethod
+	Delete      *RouteMethod
+	Get         *RouteMethod
+	Head        *RouteMethod
+	Options     *RouteMethod
+	Patch       *RouteMethod
+	Post        *RouteMethod
+	Propfind    *RouteMethod
+	Put         *RouteMethod
+	Trace       *RouteMethod
+	Report      *RouteMethod
+	allowHeader string
+}
+
+func (r *RouteMethods) updateAllowHandler() {
+	buf := new(bytes.Buffer)
+	buf.WriteString(http.MethodOptions)
+
+	if r.Connect != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodConnect)
+	}
+
+	if r.Delete != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodDelete)
+	}
+
+	if r.Get != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodGet)
+	}
+
+	if r.Head != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodHead)
+	}
+
+	if r.Patch != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodPatch)
+	}
+
+	if r.Post != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodPost)
+	}
+
+	if r.Put != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodPut)
+	}
+
+	if r.Trace != nil {
+		buf.WriteString(", ")
+		buf.WriteString(http.MethodTrace)
+	}
+
+	if r.Report != nil {
+		buf.WriteString(", ")
+		buf.WriteString("REPORT")
+	}
+
+	r.allowHeader = buf.String()
+}
+
 const (
-	staticKind kind = iota
+	staticKind Kind = iota
 	paramKind
 	anyKind
 )
 
-func (n *Node) inspectAdd(method, path string, h http.HandlerFunc) {
+func (n *InspectNode) AddMethod(method string, h *RouteMethod) {
+	switch method {
+	case http.MethodConnect:
+		n.Methods.Connect = h
+	case http.MethodDelete:
+		n.Methods.Delete = h
+	case http.MethodGet:
+		n.Methods.Get = h
+	case http.MethodHead:
+		n.Methods.Head = h
+	case http.MethodOptions:
+		n.Methods.Options = h
+	case http.MethodPatch:
+		n.Methods.Patch = h
+	case http.MethodPut:
+		n.Methods.Put = h
+	case http.MethodPost:
+		n.Methods.Post = h
+	case http.MethodTrace:
+		n.Methods.Trace = h
+	}
+	n.Methods.updateAllowHandler()
+	n.isHandler = true
+}
+
+func (n *InspectNode) InspectAdd(method, path string, h http.HandlerFunc) {
 	if path == "" {
 		path = "/"
 	}
@@ -47,7 +156,7 @@ func (n *Node) inspectAdd(method, path string, h http.HandlerFunc) {
 			}
 
 			j := i + 1
-			n.inspectInsert(method, path[:i], staticKind, routeMethod{})
+			n.inspectInsert(method, path[:i], staticKind, RouteMethod{})
 			for ; i < lcpIndex && path[i] != '/'; i++ {
 			}
 
@@ -56,20 +165,20 @@ func (n *Node) inspectAdd(method, path string, h http.HandlerFunc) {
 			i, lcpIndex = j, len(path)
 
 			if i == lcpIndex {
-				n.inspectInsert(method, path[:i], paramKind, routeMethod{ppath, pnames, h})
+				n.inspectInsert(method, path[:i], paramKind, RouteMethod{ppath, pnames, h})
 			} else {
-				n.inspectInsert(method, path[:i], paramKind, routeMethod{})
+				n.inspectInsert(method, path[:i], paramKind, RouteMethod{})
 			}
 		} else if path[i] == '*' {
-			n.inspectInsert(method, path[:i], staticKind, routeMethod{})
+			n.inspectInsert(method, path[:i], staticKind, RouteMethod{})
 			pnames = append(pnames, "*")
-			n.inspectInsert(method, path[:i+1], anyKind, routeMethod{ppath, pnames, h})
+			n.inspectInsert(method, path[:i+1], anyKind, RouteMethod{ppath, pnames, h})
 		}
 	}
 
-	n.inspectInsert(method, path, staticKind, routeMethod{ppath, pnames, h})
+	n.inspectInsert(method, path, staticKind, RouteMethod{ppath, pnames, h})
 }
 
-func (n *Node) inspectInsert(method, path string, t kind, rm routeMethod) {
-	fmt.Printf("Method: %s\nPath: %s\nKind: %d\nrouteMethod: %v\n\n", method, path, t, rm)
+func (n *InspectNode) inspectInsert(method, path string, t Kind, rm RouteMethod) {
+
 }

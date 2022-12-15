@@ -16,8 +16,9 @@ type (
 	}
 
 	Router struct {
-		root *tree.Node
-		pool sync.Pool
+		root  *tree.Node
+		iroot *tree.InspectNode
+		pool  sync.Pool
 	}
 
 	routeMethod struct {
@@ -40,7 +41,8 @@ const (
 
 func NewRouter() *Router {
 	return &Router{
-		root: tree.NewNode(),
+		root:  tree.NewNode(),
+		iroot: &tree.InspectNode{},
 		pool: sync.Pool{
 			New: func() interface{} {
 				return nil
@@ -98,8 +100,9 @@ func (o *Router) InspectAdd(method, path string, handler http.HandlerFunc) {
 	o.Inspectinsert(method, path, staticKind, routeMethod{ppath, pnames, handler})
 }
 
-func (o *Router) Inspectinsert(method, path string, t kind, rm routeMethod) {
-	currentNode := o.root
+func (o *Router) Inspectinsert(method, path string, t tree.Kind, rm routeMethod) {
+	// is root
+	currentNode := o.iroot
 
 	if currentNode == nil {
 		panic("root is nil")
@@ -121,7 +124,13 @@ func (o *Router) Inspectinsert(method, path string, t kind, rm routeMethod) {
 		}
 
 		if lcpIndex == 0 {
-
+			currentNode.Label = search[0]
+			currentNode.Prefix = search
+			if rm.handler != nil {
+				currentNode.Kind = t
+				currentNode.ParamsCount = len(rm.pnames)
+				currentNode.OriginalPath = rm.ppath
+			}
 		} else if lcpIndex < prefixLen {
 
 		} else if lcpIndex < searchLen {

@@ -16,47 +16,47 @@ type Param struct {
 }
 
 type Node struct {
-	parent   *Node
-	children []*Node
-	prefix   string
-	value    int64
-	nodeType int
-	param    Param
-	handler  http.HandlerFunc
+	Parent   *Node
+	Children []*Node
+	Prefix   string
+	Value    int64
+	NodeType int
+	Param    Param
+	Handler  http.HandlerFunc
 }
 
 func NewNode() *Node {
 	return &Node{
-		parent:   nil,
-		children: make([]*Node, 0),
+		Parent:   nil,
+		Children: make([]*Node, 0),
 	}
 }
 
-func (n *Node) Insert(str string, handler http.HandlerFunc) {
+func (n *Node) Insert(str string, Handler http.HandlerFunc) {
 	var _n *Node
 
 	suffix := str
-	commonlength := lcp(n.prefix, suffix)
+	commonlength := lcp(n.Prefix, suffix)
 
 	// rootが子ノードを持っていない時
-	if len(n.children) == 0 {
+	if len(n.Children) == 0 {
 		newNode := &Node{
-			parent:   n,
-			prefix:   "/",
-			handler:  nil,
-			nodeType: staticNode,
+			Parent:   n,
+			Prefix:   "/",
+			Handler:  nil,
+			NodeType: staticNode,
 		}
-		n.children = append(n.children, newNode)
+		n.Children = append(n.Children, newNode)
 		suffix = suffix[commonlength:]
 		_n = newNode
 		// fmt.Printf("insert %v, after %v\n", newNode, n)
 	} else {
-		_n = n.children[0]
+		_n = n.Children[0]
 	}
 
 	// pathが'/'の時
 	if suffix == "/" {
-		_n.handler = handler
+		_n.Handler = Handler
 		return
 	}
 
@@ -65,26 +65,26 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			n = _n
 		}
 
-		commonlength := lcp(n.prefix, suffix)
+		commonlength := lcp(n.Prefix, suffix)
 
 		// 完全一致しない場合
 		if len(suffix) > commonlength {
 			mn := len(suffix)
 			var _next *Node
 
-			// children の中に prefix と部分一致するものがあるか探す
-			for i := 0; i < len(n.children); i++ {
-				l := lcp(n.children[i].prefix, suffix)
+			// Children の中に Prefix と部分一致するものがあるか探す
+			for i := 0; i < len(n.Children); i++ {
+				l := lcp(n.Children[i].Prefix, suffix)
 				if l <= mn && l != 0 {
 					mn = l
-					_next = n.children[i]
+					_next = n.Children[i]
 				}
 			}
 
 			// 部分一致するものがあって、/の場合は、次のノードにする
 			if mn < len(suffix) && mn > 0 && suffix[0] == '/' {
 				// 中間ノードがある場合、次のノードにする
-				if _next.prefix == suffix[:mn] {
+				if _next.Prefix == suffix[:mn] {
 					suffix = suffix[mn:]
 					_n = _next
 					continue
@@ -94,7 +94,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			// 部分一致するものがある場合で、パス内の文字列の場合
 			if mn < len(suffix) && mn > 0 && suffix[0] != '/' {
 				// 中間ノードがある場合、次のノードにする
-				if _next.prefix == suffix[:mn] {
+				if _next.Prefix == suffix[:mn] {
 					suffix = suffix[mn:]
 					_n = _next
 					continue
@@ -102,29 +102,29 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 
 				// 中間ノードが必要な場合は作成して次のノードにする
 				interemediate := &Node{
-					parent:   n,
-					prefix:   suffix[:mn],
-					children: make([]*Node, 0),
-					nodeType: staticNode,
+					Parent:   n,
+					Prefix:   suffix[:mn],
+					Children: make([]*Node, 0),
+					NodeType: staticNode,
 				}
 
-				interemediate.parent = n
-				for i := 0; i < len(n.children); i++ {
-					if suffix[:mn] == n.children[i].prefix[:mn] {
+				interemediate.Parent = n
+				for i := 0; i < len(n.Children); i++ {
+					if suffix[:mn] == n.Children[i].Prefix[:mn] {
 						// 中間ノードに子ノードを追加する
-						interemediate.children = append(interemediate.children, n.children[i])
+						interemediate.Children = append(interemediate.Children, n.Children[i])
 
 						// 子ノードの親ノードを中間ノードに更新する
-						n.children[i].parent = interemediate
-						n.children[i].prefix = n.children[i].prefix[mn:]
+						n.Children[i].Parent = interemediate
+						n.Children[i].Prefix = n.Children[i].Prefix[mn:]
 
-						// 親ノードに存在する既存のchildrenを削除する
-						n.children = append(n.children[:i], n.children[i+1:]...)
+						// 親ノードに存在する既存のChildrenを削除する
+						n.Children = append(n.Children[:i], n.Children[i+1:]...)
 					}
 				}
 
 				// 親ノードに中間ノードを追加する
-				n.children = append(n.children, interemediate)
+				n.Children = append(n.Children, interemediate)
 				suffix = suffix[mn:]
 				_n = interemediate
 				continue
@@ -149,24 +149,24 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			var _child *Node
 
 			// 既にパラメータノードがあるか探す
-			for i := 0; i < len(n.children); i++ {
-				if n.children[i].nodeType == paramNode {
-					_child = n.children[i]
+			for i := 0; i < len(n.Children); i++ {
+				if n.Children[i].NodeType == paramNode {
+					_child = n.Children[i]
 					break
 				}
 			}
 
 			if _child != nil {
-				l := lcp(_child.prefix, suffix[:i])
+				l := lcp(_child.Prefix, suffix[:i])
 
 				// 既にあるパラメータノードと一致しない場合は、panicを返す
-				if l != len(_child.prefix) {
+				if l != len(_child.Prefix) {
 					panic("param node is already exist")
 				}
 
 				// suffixが一致する場合は、ハンドラを設定して終了
 				if l == len(suffix) {
-					_child.handler = handler
+					_child.Handler = Handler
 					return
 				}
 
@@ -191,19 +191,19 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 
 			// 新規にパラメータのノードを作成する
 			newParamNode := &Node{
-				parent:   n,
-				prefix:   suffix[:i],
-				param:    Param{Key: paramBytes.String(), Value: ""},
-				children: make([]*Node, 0),
-				nodeType: paramNode,
+				Parent:   n,
+				Prefix:   suffix[:i],
+				Param:    Param{Key: paramBytes.String(), Value: ""},
+				Children: make([]*Node, 0),
+				NodeType: paramNode,
 			}
 
 			// 最後のノードの場合はハンドラを設定する
 			if i == len(suffix) {
-				newParamNode.handler = handler
+				newParamNode.Handler = Handler
 			}
 
-			n.children = append(n.children, newParamNode)
+			n.Children = append(n.Children, newParamNode)
 			// fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
 			suffix = suffix[i:]
 			_n = newParamNode
@@ -219,26 +219,26 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 				}
 			}
 			newNode := &Node{
-				parent:   n,
-				prefix:   suffix[:i],
-				handler:  handler,
-				nodeType: staticNode,
+				Parent:   n,
+				Prefix:   suffix[:i],
+				Handler:  Handler,
+				NodeType: staticNode,
 			}
 			suffix = suffix[i:]
-			n.children = append(n.children, newNode)
+			n.Children = append(n.Children, newNode)
 			// fmt.Printf("insert %v, after %v\n", newNode, n)
 			_n = newNode
 			continue
 		}
 
 		// "/"の場合は新規にノードを作成する
-		if suffix[:commonlength] == "/" && n.prefix != "/" {
+		if suffix[:commonlength] == "/" && n.Prefix != "/" {
 			newNode := &Node{
-				parent:   n,
-				prefix:   suffix[:commonlength],
-				nodeType: staticNode,
+				Parent:   n,
+				Prefix:   suffix[:commonlength],
+				NodeType: staticNode,
 			}
-			n.children = append(n.children, newNode)
+			n.Children = append(n.Children, newNode)
 			suffix = suffix[commonlength:]
 			_n = newNode
 			continue
@@ -271,7 +271,7 @@ func (n *Node) Search(path string) (http.HandlerFunc, []*Param) {
 
 		// 完全一致するパスがあるため、ハンドラを返す
 		if now == path {
-			return _n.handler, params
+			return _n.Handler, params
 		}
 
 		// ここまでくる場合は、完全一致していないため backtrack でパラメータノードを子供に持ったノードまで遡る
@@ -286,7 +286,7 @@ func (n *Node) Search(path string) (http.HandlerFunc, []*Param) {
 		params = append(params, tparams...)
 
 		if now == path {
-			return _n.handler, params
+			return _n.Handler, params
 		}
 
 		// ノードが更新されていない = もう検索ができない ので nil を返す
@@ -315,7 +315,7 @@ func staticSearch(n *Node, path string) (*Node, string) {
 
 	// pathが"/"の時
 	if path == "/" {
-		return n.children[0], "/"
+		return n.Children[0], "/"
 	}
 
 	// 現在のパスを保持し、入力されたパスと同じかどうかを確認する
@@ -334,11 +334,11 @@ func staticSearch(n *Node, path string) (*Node, string) {
 
 		// 今のノードの子ノードから最大共通接頭辞が長いものを次のノードにする
 		mx := 0
-		for i := 0; i < len(n.children); i++ {
-			l := lcp(n.children[i].prefix, suffix)
+		for i := 0; i < len(n.Children); i++ {
+			l := lcp(n.Children[i].Prefix, suffix)
 			// ここにstaticNodeの条件を追加
-			if l > mx && n.children[i].nodeType == staticNode {
-				_n = n.children[i]
+			if l > mx && n.Children[i].NodeType == staticNode {
+				_n = n.Children[i]
 				mx = l
 			}
 		}
@@ -351,7 +351,7 @@ func staticSearch(n *Node, path string) (*Node, string) {
 		// 処理するsuffixを更新する
 		suffix = suffix[mx:]
 		// 現在のpathを更新する
-		now += _n.prefix
+		now += _n.Prefix
 
 		// 次のノードが更新されているため、処理を続ける
 		if mx > 0 {
@@ -367,17 +367,17 @@ func backtrack(n *Node, path string) (*Node, string) {
 			n = _n
 		}
 		// 子ノードにパラメータノードがある場合は、パラメータノードとパスを返す
-		for i := 0; i < len(n.children); i++ {
-			if n.children[i].nodeType == paramNode {
-				return n.children[i], path
+		for i := 0; i < len(n.Children); i++ {
+			if n.Children[i].NodeType == paramNode {
+				return n.Children[i], path
 			}
 		}
 
-		_n = n.parent
+		_n = n.Parent
 
 		// ノードに応じて path の値を巻き戻す
-		if len(path) > len(n.prefix) {
-			path = path[:len(path)-len(n.prefix)]
+		if len(path) > len(n.Prefix) {
+			path = path[:len(path)-len(n.Prefix)]
 		}
 
 		// ルートノードの親ノードはないので nil を返す
@@ -412,8 +412,8 @@ func paramSearch(n *Node, path string) (*Node, string, []*Param) {
 		/*
 		** 抽出した文字列をスライスに追加
 		 */
-		n.param.Value = paramBytes.String()
-		params = append(params, &n.param)
+		n.Param.Value = paramBytes.String()
+		params = append(params, &n.Param)
 
 		now = _suffix[:i]
 
@@ -423,8 +423,8 @@ func paramSearch(n *Node, path string) (*Node, string, []*Param) {
 		}
 
 		// 次のノードは必ず '/' なので、ノードを更新する
-		if len(n.children) > 0 {
-			n = n.children[0]
+		if len(n.Children) > 0 {
+			n = n.Children[0]
 			now += "/"
 		}
 
@@ -434,9 +434,9 @@ func paramSearch(n *Node, path string) (*Node, string, []*Param) {
 		/*
 		** 子ノードが paramNode を持っている場合、検索ノードをそのノードに更新する。
 		 */
-		for i := 0; i < len(n.children); i++ {
-			if n.children[i].nodeType == paramNode {
-				_next = n.children[i]
+		for i := 0; i < len(n.Children); i++ {
+			if n.Children[i].NodeType == paramNode {
+				_next = n.Children[i]
 				break
 			}
 		}
