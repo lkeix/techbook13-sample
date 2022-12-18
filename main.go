@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/lkeix/techbookfes13-sample/router"
+	"github.com/lkeix/techbook13-sample/router"
 )
 
 type value struct {

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-chi/chi/v5"
 	"github.com/labstack/echo/v4"
-	"github.com/lkeix/techbookfes13-sample/router"
+	"github.com/lkeix/techbook13-sample/router"
 )
 
 var routes = []string{

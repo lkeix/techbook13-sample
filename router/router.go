@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/lkeix/techbookfes13-sample/tree"
+	"github.com/lkeix/techbook13-sample/tree"
 )
 
 type (
