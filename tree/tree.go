@@ -2,7 +2,6 @@ package tree
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 )
 
@@ -205,7 +204,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			}
 
 			n.children = append(n.children, newParamNode)
-			fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
+			// fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
 			suffix = suffix[i:]
 			_n = newParamNode
 			continue
