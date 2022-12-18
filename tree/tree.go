@@ -2,6 +2,7 @@ package tree
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 )
 
@@ -204,7 +205,7 @@ func (n *Node) Insert(str string, handler http.HandlerFunc) {
 			}
 
 			n.children = append(n.children, newParamNode)
-			// fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
+			fmt.Printf("insert2 %v, after %v\n", newParamNode, n)
 			suffix = suffix[i:]
 			_n = newParamNode
 			continue
@@ -391,7 +392,7 @@ func paramSearch(n *Node, path string) (*Node, string, []*Param) {
 	/*
 	** パラメータを保持するスライスを定義
 	 */
-	params := make([]*Param, 0, 10)
+	params := make([]*Param, 0)
 
 	_suffix := path
 	now := ""
@@ -431,25 +432,8 @@ func paramSearch(n *Node, path string) (*Node, string, []*Param) {
 		_suffix = _suffix[lcp(_suffix, now):]
 		_next := n
 
-		/*
-		** 子ノードが paramNode を持っている場合、検索ノードをそのノードに更新する。
-		 */
-		for i := 0; i < len(n.children); i++ {
-			if n.children[i].nodeType == paramNode {
-				_next = n.children[i]
-				break
-			}
-		}
-
-		if _next != n {
-			n = _next
-			continue
-		}
-
-		/*
-		** 子ノードにパラメータノードがない場合は、現在のノード、パス文字列、パラメータを返します。
-		 */
-		return n, now, params
+		// パスパタメータの探索は終了
+		return _next, now, params
 	}
 }
 
